@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Distance Matrix Service</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyByi1oWjy3c37UPd1crLv0h5HhVbcUrJT0&callback=initMap&libraries=&v=weekly" defer></script>
+    <link rel="stylesheet" href="css/style.css">
+
+    <script>
+        function initMap() {
+            var output_t1;
+            var end_point = [];
+
+            var start_point_names = [];
+            const bounds = new google.maps.LatLngBounds();
+            const markersArray = [];
+            var markersArray1 = [];
+            var i_marker = 0;
+            var results1;
+            var c1 = [];
+
+
+            const destinationIcon =
+                "https://chart.googleapis.com/chart?" +
+                "chst=d_map_pin_letter&chld=D|FF0000|000000";
+            const originIcon =
+                "https://chart.googleapis.com/chart?" +
+                "chst=d_map_pin_letter&chld=O|FFFF00|000000";
+            const map = new google.maps.Map(document.getElementById("map"), {
+                center: {
+                    lat: 59.95581,
+                    lng: 30.236238
+                },
+                zoom: 13,
+            });
+
+
+
+            //
+            fetch('bus_line_1-short.json').then(function(response) {
+                return response.json();
+            }).then(function(obj) {
+                //  console.log('obj');
+                //  console.log(obj);
+                let myString;
+                var output = '';
+                let cordin = [{
+                    lng: 0,
+                    lat: 0
+                }];
+
+
+                let start_point = [
+                    [0, 0]
+                ];
+
+
+                for (var i = 0; i < obj.length; i++) {
+
+                    myString = obj[i].geometry.centroid;
+
+                    myString = myString.replace(/[POINT()]/g, '');
+                    // myString = myString.replace(/' '/g, ',');
+                    var n = myString.indexOf(" ");
+
+                    cordin.lng = Number(myString.substring(0, n));
+                    cordin.lat = Number(myString.substring(n + 1, myString.length));
+
+                    start_point[i][0] = cordin.lng;
+                    start_point[i][1] = cordin.lat;
+                    start_point.push([0, 0]);
+
+                    //   start_point.push(cordin);
+                    start_point_names.push(obj[i].name); // названия остановок из json
+
+                    new google.maps.Marker({
+                        map: map,
+                        title: obj[i].name,
+                        position: cordin,
+                        label: String(i + 1),
+
+                    })
+
+                    //   console.log("vot " + obj[i].geoData.coordinates[0]);
+
+                }
+
+                // return;
+
+                start_point.pop();
+                end_point = start_point.slice(); // независимая копия массива
+                end_point_names = start_point_names.slice();
+
+                end_point.shift(); // сдвигаем влево
+                end_point_names.shift();
+
+                start_point.pop(); // удаляем последний элемент массива
+                start_point_names.pop()
+
+
+
+                let start = [{
+                    lng: 0,
+                    lat: 0
+                }];
+
+                let finish = [{
+                    lng: 0,
+                    lat: 0
+                }];
+
+                for (var j = 0; j < start_point.length; j++) {
+
+                    start.push({
+                        lng: start_point[j][0],
+                        lat: start_point[j][1]
+                    });
+
+                    finish.push({
+                        lng: end_point[j][0],
+                        lat: end_point[j][1]
+                    });
+                }
+
+                start.shift();
+                finish.shift();
+
+                //   for (var j = 0; j < start_point.length; j++) {
+                //      console.log("start_point " + start_point[j][0]);
+                //   }
+
+                /////////////////////
+
+                let begin_root = [{
+                    lng: 0,
+                    lat: 0
+                }];
+
+                let end_root = [{
+                    lng: 0,
+                    lat: 0
+                }];
+
+
+                //********************************************************************//
+                //                      Расчет  дистанций                             //
+                //********************************************************************//
+                const geocoder = new google.maps.Geocoder();
+                const service = new google.maps.DistanceMatrixService();
+
+                let i_station = 0;
+
+                begin_root[0].lng = start_point[0][0];
+                begin_root[0].lat = start_point[0][1];
+
+                end_root[0].lng = end_point[0][0];
+                end_root[0].lat = end_point[0][1];
+
+
+                (function f(i_station) {
+
+                    if (i_station > start_point_names.length) return;
+
+
+                    let p = new Promise(function(resolve, reject) {
+
+
+
+                        //  console.log('i_station 99 ' + i_station + ' begin_root.lat ' + begin_root[0].lat + ' end_root.lat ' + end_root[0].lat);
+
+                        service.getDistanceMatrix({
+                                origins: begin_root,
+                                destinations: end_root,
+                                travelMode: google.maps.TravelMode.DRIVING,
+                                unitSystem: google.maps.UnitSystem.METRIC,
+                                avoidHighways: false,
+                                avoidTolls: false,
+                            },
+                            (response, status) => {
+                                if (status == 'OK') {
+                                    // константы
+                                    const originList = response.originAddresses;
+                                    const destinationList = response.destinationAddresses;
+                                    const outputDiv = document.getElementById("output");
+
+                                    //     console.log(originList[0] + "------org------" + destinationList[0] + ' i_station ' + i_station);
+
+                                    //     console.log(response.rows[0].elements[0].distance.text);
+
+                                    outputDiv.innerHTML += "<strong>" + String(i_station + 1) + "</strong>" + ". " +
+                                        originList[0] + " остановка (" + start_point_names[i_station] +
+                                        ") =====> " +
+                                        destinationList[0] + " остановка (" + end_point_names[i_station] + ") : " +
+                                        response.rows[0].elements[0].distance.text + "  или  " +
+                                        response.rows[0].elements[0].distance.value + " метров " +
+                                        " в " +
+                                        response.rows[0].elements[0].duration.text +
+                                        "<br>";
+
+                                    console.log('i_station ' + i_station)
+                                    console.log('i_station ' + i_station + ' begin_root.lat ' + begin_root[0].lat + ' end_root.lat ' + end_root[0].lat);
+
+                                    resolve();
+                                }
+                            }
+                        );
+                    });
+
+                    p.then(() => {
+
+                        i_station = i_station + 1;
+                        try {
+                            if (i_station < start_point.length) {
+                                begin_root[0].lng = start_point[i_station][0];
+                                begin_root[0].lat = start_point[i_station][1];
+
+                                end_root[0].lng = end_point[i_station][0];
+                                end_root[0].lat = end_point[i_station][1];
+                                // console.log(begin_root[0].lng + "--e--" + end_root[0].lng);
+                                //   console.log('---------------------------------------------');
+                                f(i_station);
+                            }
+                        } catch (err) {
+                            console.log('My error ' + err);
+                        }
+                    })
+                })(0);
+
+                // getDistanceMatrix конец
+            }).catch(function(error) { // чтение исходных данных
+                console.log('Something went wrong');
+                console.log(error);
+            });
+
+
+        }
+
+        function deleteMarkers(markersArray) {
+            for (let i = 0; i < markersArray.length; i++) {
+                //         markersArray[i].setMap(null);
+            }
+            //   markersArray = [];
+        }
+
+        function sleep(milliSeconds) {
+            var startTime = new Date().getTime();
+            while (new Date().getTime() < startTime + milliSeconds);
+        }
+    </script>
+</head>
+
+<body>
+    <div id="right-panel">
+        <div id="inputs">
+
+
+            <!--       <pre>
+var origin1 = {lat: 55.930, lng: -3.118};
+var origin2 = 'Greenwich, England';
+var destinationA = 'Stockholm, Sweden';
+var destinationB = {lat: 50.087, lng: 14.421};
+        </pre> -->
+
+
+        </div>
+        <div>
+            <strong>Расстояния между остановками</strong>
+        </div>
+        <div id="output"></div>
+    </div>
+    <div id="map"></div>
+</body>
+
+</html>
