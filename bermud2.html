@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Simple Polygon</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyByi1oWjy3c37UPd1crLv0h5HhVbcUrJT0&callback=initMap&libraries=&v=weekly" defer></script>
+    <style type="text/css">
+        /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+        
+        #map {
+            height: 100%;
+        }
+        /* Optional: Makes the sample page fill the window. */
+        
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+    <script>
+        // This example creates a simple polygon representing the Bermuda Triangle.
+        function initMap() {
+            var section = [];
+            const map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 5,
+                center: {
+                    lat: 62.091823,
+                    lng: 129.796406
+                },
+                mapTypeId: "terrain",
+            });
+
+
+
+            ///////////////////
+
+            let json_file = 'res_json/res_bus_1(6).json';
+
+            //fetch  чтение json
+            fetch(json_file).then(function(response) { // чтение json
+                return response.json();
+            }).then(function(obj) { // успешное чтение json
+                console.log('obj');
+                console.log(obj);
+
+
+
+
+
+
+                var str_poligon = obj.result.items[0].directions[0].platforms[0].geometry.hover;
+                str_poligon = str_poligon.replace(/[POLYGON((]/g, '');
+
+
+                str_poligon = str_poligon.replace(/[)]/g, '');
+
+                var array_poligon = str_poligon.split(',');
+
+
+
+
+                for (i = 0; i < array_poligon.length; i++) {
+                    let lng_lat = array_poligon[i].split(' ');
+
+                    section.push({
+                        lat: parseFloat(lng_lat[1]),
+                        lng: parseFloat(lng_lat[0])
+
+                    });
+
+                }
+
+                console.log(section);
+
+
+                let triangleCoords = section;
+
+                // Construct the polygon.
+                const bermudaTriangle = new google.maps.Polygon({
+                    paths: triangleCoords,
+                    strokeColor: "#FF0000",
+                    strokeOpacity: 0.8,
+                    strokeWeight: 2,
+                    fillColor: "#FF0000",
+                    fillOpacity: 0.35,
+                });
+                bermudaTriangle.setMap(map);
+
+
+            });
+
+            //////////////////////
+
+
+
+            /*
+                        // Define the LatLng coordinates for the polygon's path.
+                        let triangleCoords = [{
+                            lat: 25.774,
+                            lng: -80.19
+                        }, {
+                            lat: 18.466,
+                            lng: -66.118
+                        }, {
+                            lat: 32.321,
+                            lng: -64.757
+                        }, {
+                            lat: 25.774,
+                            lng: -80.19
+                        }, ];
+            */
+
+
+
+        }
+    </script>
+</head>
+
+<body>
+    <div id="map"></div>
+</body>
+
+</html>

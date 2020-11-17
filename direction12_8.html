@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Travel Modes in Directions</title>
+    <meta charset="UTF-8">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyByi1oWjy3c37UPd1crLv0h5HhVbcUrJT0&callback=initMap&libraries=&v=weekly" defer></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.js" integrity="sha256-QWo7LDvxbWT2tbbQ97B53yJnYU3WhH/C8ycbRAkjPDc=" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="css/style.css">
+
+    <script>
+        function initMap() {
+
+
+
+            const onChangeHandler = function() { // функция вызывается при выборе файла маршрута из меню сайта
+                calculateAndDisplayRoute();
+            };
+
+            document.getElementById("start").addEventListener("change", onChangeHandler); // слушатель на событие при выборе json файла  из меню сайта
+
+            function calculateAndDisplayRoute() {
+                //   console.log(document.getElementById("start").value);
+                selectFileJson(document.getElementById("start").value);
+            }
+
+            let event = new Event("change"); // эмуляция события при первом вызове карты
+            start.dispatchEvent(event);
+
+
+            function selectFileJson(json_file) { // в функцию передается json файл с исходными данными по маршруту
+                let start_point = [
+                    [0, 0]
+                ];
+                var mapOptions = {
+                    zoom: 4,
+                    center: new google.maps.LatLng(61.981952, 129.668574),
+
+                    mapTypeId: google.maps.MapTypeId.ROADMAP
+                };
+
+                //fetch  чтение json
+                fetch(json_file).then(function(response) { // чтение json
+                    return response.json();
+                }).then(function(obj) { // успешное чтение json
+                    console.log('obj');
+                    console.log(obj);
+
+                    let direct = 0;
+
+                    let coord_platf_string; // строковое значение координат остановки
+
+                    let cordin = [{
+                        lng: 0,
+                        lat: 0
+                    }];
+
+                    let s_point = {
+                        lng: 0,
+                        lat: 0
+                    };
+
+                    let e_point = {
+                        lng: 0,
+                        lat: 0
+                    };
+
+                    let s_point1 = {
+                        lng: 0,
+                        lat: 0
+                    };
+
+                    let e_point1 = {
+                        lng: 0,
+                        lat: 0
+                    };
+                    let start = {
+                        lng: 0,
+                        lat: 0
+                    };
+                    let end = {
+                        lng: 0,
+                        lat: 0
+                    };
+                    var request = {
+                        origin: start,
+                        destination: end,
+                        travelMode: 'DRIVING'
+                    };
+
+                    //
+                    // цикл чтения координат всех остановок
+                    //
+                    for (var i = 0; i < obj.result.items[0].directions[direct].platforms.length; i++) { // цикл чтения координат всех остановок
+                        coord_platf_string = obj.result.items[0].directions[direct].platforms[i].geometry.centroid;
+                        coord_platf_string = coord_platf_string.replace(/[POINT()]/g, '');
+                        var n = coord_platf_string.indexOf(" ");
+                        cordin.lng = Number(coord_platf_string.substring(0, n));
+                        cordin.lat = Number(coord_platf_string.substring(n + 1, coord_platf_string.length));
+
+                        start_point[i][0] = cordin.lng;
+                        start_point[i][1] = cordin.lat;
+                        start_point.push([0, 0]);
+
+
+                    } // конец цикла  чтения координат всех остановок
+
+                    s_point.lng = start_point[0][0];
+                    s_point.lat = start_point[0][1];
+
+                    e_point.lng = start_point[1][0];
+                    e_point.lat = start_point[1][1];
+
+
+                    s_point1.lng = start_point[1][0];
+                    s_point1.lat = start_point[1][1];
+
+                    e_point1.lng = start_point[2][0];
+                    e_point1.lat = start_point[2][1];
+
+                    map = new google.maps.Map(document.getElementById('map'), mapOptions);
+
+                    directionsService = new google.maps.DirectionsService();
+
+                    //   requestDirections(s_point, e_point, {
+                    //       strokeColor: '#ff0000'
+                    //   });
+
+                    ///////////
+
+
+
+                    var someFunction = async function(start, end, color) {
+                        return new Promise(function(resolve, reject) {
+
+                            var request = {
+                                origin: start,
+                                destination: end,
+                                travelMode: 'DRIVING'
+                            };
+
+                            // расчет  маршрута
+                            directionsService.route(request, function(result, status) {
+                                if (status == 'OK') {
+
+                                    var rendererOptions = {
+                                        map: map,
+                                        suppressMarkers: true,
+                                    }
+
+                                    console.log('result_section');
+                                    //     console.log(result);
+
+
+                                    for (i = 0; i < result.routes[0].overview_path.length; i++) {
+
+                                        console.log(result.routes[0].overview_path[i].lat());
+                                        console.log(result.routes[0].overview_path[i].lng());
+                                    }
+                                    ////////////
+
+
+                                    directionsRenderer = new google.maps.DirectionsRenderer(rendererOptions);
+                                    directionsRenderer.setDirections(result);
+                                    directionsRenderer.setMap(map);
+
+                                    var polylineOpts = {
+                                        strokeColor: color
+                                    }
+
+                                    if (polylineOpts) {
+                                        directionsRenderer.setOptions({
+                                            polylineOptions: polylineOpts
+                                        });
+                                    }
+
+                                    setTimeout(() => {
+                                        resolve();
+                                    }, 1000);
+
+                                    // resolve();
+                                }
+                            });
+
+
+                        });
+                    }
+
+                    async function f() {
+                        //  for (let i = 0; i < obj.result.items[0].directions[direct].platforms.length; i++) {
+                        for (let i = 0; i < 3; i++) {
+
+
+                            start.lng = start_point[i][0];
+                            start.lat = start_point[i][1];
+
+                            end.lng = start_point[i + 1][0];
+                            end.lat = start_point[i + 1][1];
+
+                            let dist = obj.result.items[0].directions[0].platforms[i].distance_next_platform;
+                            //   console.log('dist ' + dist);
+
+                            switch (true) {
+                                case (dist >= 0 && dist <= 200):
+                                    {
+                                        color = '#3ca';
+                                        break;
+                                    }
+                                case (dist > 200 && dist <= 400):
+                                    {
+                                        color = 'orange';
+                                        break;
+                                    }
+
+                                case (dist > 400 && dist <= 600):
+                                    {
+                                        color = 'cornflowerblue';
+                                        break;
+                                    }
+                                case (dist > 600 && dist <= 800):
+                                    {
+                                        color = 'green';
+                                        break;
+                                    }
+                                case (dist > 800 && dist <= 1000):
+                                    {
+                                        color = '#cc0';
+                                        break;
+                                    }
+                                case (dist > 1000 && dist <= 1200):
+                                    {
+                                        color = 'violet';
+                                        break;
+                                    }
+                                case (dist > 1200 && dist <= 1400):
+                                    {
+                                        color = 'gray';
+                                        break;
+                                    }
+                                case (dist > 1400):
+                                    {
+                                        color = 'gray';
+                                        break;
+                                    }
+
+
+                                default:
+                                    {
+                                        color = 'black'
+                                        break;
+                                    }
+                            }
+
+
+                            let result = await someFunction(start, end, color); // будет ждать, пока промис не выполнится (*)
+                            //  console.log(i); // 
+                        }
+                    }
+                    f();
+
+                    //////////////
+
+                    for (var i = 0; i < obj.result.items[0].directions[direct].platforms.length; i++) { // цикл чтения координат всех остановок и рисования маркров
+                        coord_platf_string = obj.result.items[0].directions[direct].platforms[i].geometry.centroid;
+                        coord_platf_string = coord_platf_string.replace(/[POINT()]/g, '');
+                        var n = coord_platf_string.indexOf(" ");
+                        cordin.lng = Number(coord_platf_string.substring(0, n));
+                        cordin.lat = Number(coord_platf_string.substring(n + 1, coord_platf_string.length));
+                        /*
+
+                                            new google.maps.Marker({ // создаем маркеры в цикле
+                                                map: map,
+                                                title: obj.result.items[0].directions[direct].platforms[i].name,
+                                                position: cordin,
+                                                label: String(i + 1),
+                                                //  icon: destinationIcon,
+                                            });
+                        */
+                        let station_namber = i + 1;
+                        var marker = new google.maps.Marker({
+                            position: cordin,
+                            map: map,
+                            title: i + '. Расстояние до следующей остановки в метрах: ' + obj.result.items[0].directions[0].platforms[i].distance_next_platform,
+                            icon: {
+                                url: "my_bus.svg",
+                                labelOrigin: new google.maps.Point(12, 32),
+                                size: new google.maps.Size(32, 32),
+                                anchor: new google.maps.Point(16, 32)
+                            },
+                            label: {
+                                text: station_namber + '. ' + obj.result.items[0].directions[direct].platforms[i].name,
+                                color: "#C70E20",
+                                fontWeight: "bold"
+                            }
+                        });
+
+                    } // конец цикла  чтения координат всех остановок и рисования маркров
+
+                }); // конец fetch
+
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <div id="floating-panel">
+        <b>Выбор маршрута: </b>
+        <select id="start">
+        <option value="res_json/res_bus_1(6).json">bus_1(6)</option>
+        <option value="res_json/res_bus_2(8).json">bus_2(8)</option>
+        <option value="res_json/res_bus_3(8).json">bus_3(8)</option>
+        <option value="res_json/res_bus_4(12).json">bus_4(12)</option>
+        <option value="res_json/res_bus_5(8).json">bus_5(8)</option>
+        <option value="res_json/res_bus_6(8).json">bus_1(6)</option>
+        <option value="res_json/res_bus_7(8).json">bus_2(8)</option>
+        <option value="res_json/res_bus_8(8).json">bus_3(8)</option>
+        <option value="res_json/res_bus_14(12).json">bus_4(12)</option>
+        <option value="res_json/res_bus_15(6).json">bus_5(8)</option>
+        <option value="res_json/res_bus_16(8).json">bus_1(6)</option>
+        <option value="res_json/res_bus_17(9).json">bus_2(8)</option>
+        <option value="res_json/res_bus_18(8).json">bus_3(8)</option>
+        <option value="res_json/res_bus_19(8).json">bus_4(12)</option>
+        <option value="res_json/res_bus_20(12).json">bus_5(8)</option>
+        <option value="res_json/res_bus_25(8).json">bus_1(6)</option>
+        <option value="res_json/res_bus_35(7).json">bus_2(8)</option>
+        <option value="res_json/res_bus_41(8).json">bus_3(8)</option>
+        <option value="res_json/res_bus_101(1).json">bus_4(12)</option>
+        <option value="res_json/res_bus_102(1).json">bus_5(8)</option>
+        <option value="res_json/res_bus_103(1).json">bus_1(6)</option>
+        <option value="res_json/res_bus_104(1).json">bus_2(8)</option>
+        <option value="res_json/res_bus_105(1).json">bus_3(8)</option>
+        <option value="res_json/res_bus_107(1).json">bus_4(12)</option>
+        <option value="res_json/res_bus_108(1).json">bus_5(8)</option>
+        <option value="res_json/res_bus_109(1).json">bus_4(12)</option>
+        <option value="res_json/res_bus_111(1).json">bus_5(8)</option>
+      </select>
+
+    </div>
+
+    <div id="map"></div>
+    <div id="output">
+
+        <div id="head-left1">
+            <h3> ЦВЕТА ОТРЕЗКОВ МАРШРУТА </h3>
+        </div>
+        <div id="head-left2">
+            <h4>Город ЯКУТСК</h4>
+        </div>
+
+        <div id="layer1">Расстояние меньше 200 метров</div>
+        <div id="layer2">Расстояние от 200 до 400 метров </div>
+        <div id="layer3">Расстояние от 400 до 600 метров </div>
+
+        <div id="layer4">Расстояние от 600 до 800 метров </div>
+        <div id="layer5"> Расстояние от 800 до 1000 метров </div>
+        <div id="layer6">Расстояние от 1000 до 1400 метров </div>
+        <div id="layer7">Расстояние больше 1400 метров </div>
+
+
+    </div>
+
+
+
+
+</body>
+
+</html>
