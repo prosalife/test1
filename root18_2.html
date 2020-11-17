@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Distance Matrix Service</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyByi1oWjy3c37UPd1crLv0h5HhVbcUrJT0&callback=initMap&libraries=&v=weekly" defer></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.js" integrity="sha256-QWo7LDvxbWT2tbbQ97B53yJnYU3WhH/C8ycbRAkjPDc=" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="css/style.css">
+
+    <script>
+        async function initMap() {
+            let json_fname;
+            var envelop_files_lp = function(sourse_json) {
+                    return new Promise(function(resolve, reject) {
+
+                        function files_loop(sourse_json) {
+                            let obj, obj_0, obj_1, outputDiv_forward, outputDiv_backward;
+
+                            let obj_geojson = [];
+
+                            var obj_geojson_forward = {
+                                "name": "NewFeatureType",
+                                "type": "FeatureCollection",
+                                "features": [{
+                                    "type": "Feature",
+                                    "geometry": {
+                                        "type": "MultiLineString",
+                                        "coordinates": []
+                                    },
+                                    "properties": {
+                                        "full_id": null,
+                                        "Distance": null
+                                    },
+                                    "platform": [],
+                                    "platform_id": null,
+                                    "platform_coord": null,
+                                    "platform_number": null,
+                                    "root_number": null,
+                                    "distance": []
+                                }]
+                            };
+
+
+                            var obj_geojson_backward = {
+                                "name": "NewFeatureType",
+                                "type": "FeatureCollection",
+                                "features": [{
+                                    "type": "Feature",
+                                    "geometry": {
+                                        "type": "MultiLineString",
+                                        "coordinates": []
+                                    },
+                                    "properties": {
+                                        "full_id": null,
+                                        "Distance": null
+                                    },
+                                    "platform": [],
+                                    "platform_id": null,
+                                    "platform_coord": null,
+                                    "platform_number": null,
+                                    "root_number": null,
+                                    "distance": []
+                                }]
+                            };
+
+                            let arr_platform_section_coord_back = [
+                                [0, 0]
+                            ];
+
+                            let arr_platform_section_coord_forward = [
+                                [0, 0]
+                            ];
+
+                            let vihod = 0;
+                            var end_point = [];
+                            const bounds = new google.maps.LatLngBounds();
+                            const markersArray = [];
+                            const map = new google.maps.Map(document.getElementById("map"), {
+                                center: {
+                                    lat: 59.95581,
+                                    lng: 30.236238
+                                },
+                                zoom: 13,
+                            });
+                            //
+                            let direct = 0; // номер направления маршрута 0 или 1
+                            const source_file1 = sourse_json;
+
+                            function root_iteration(direct, source_file1) {
+
+                                console.log("vihod " + vihod);
+                                vihod++;
+
+                                if (direct == 1) {
+
+                                    console.log(" direct ==1");
+                                }
+
+                                if (vihod > 2) {
+                                    console.log(vihod);
+                                    console.log(json_fname);
+                                    outputDiv_forward.innerHTML += '<br>' + '-------------------------------' + '<br>';
+                                    outputDiv_backward.innerHTML += '<br>' + '-------------------------------' + '<br>';
+                                    resolve("end one json file");
+                                    return;
+                                }
+
+                                let obj = {}; // Объект для чтения json
+
+                                fetch(source_file1).then(function(response) { // чтение json
+                                    return response.json();
+                                }).then(function(obj) { // успешное чтение json
+                                    //  console.log('obj');
+
+                                    if (direct == 0) {
+                                        obj_0 = obj
+                                    } else {
+                                        obj_1 = obj;
+                                    }
+
+                                    let coord_platf_string; // строковое значение координат остановки
+
+                                    let cordin = [{
+                                        lng: 0,
+                                        lat: 0
+                                    }];
+
+                                    let start_point = [
+                                        [0, 0]
+                                    ];
+
+                                    let root_coord = obj.result.items[0].directions[direct].geometry.selection; //получаем строку с координатами всего маршрута
+                                    root_coord = root_coord.replace(/[LINESTRING(]/g, '').replace(/[)]/g, ''); //очищаем строку от нецифровых символов
+
+                                    for (var i = 0; i < obj.result.items[0].directions[direct].platforms.length; i++) { // цикл чтения координат всех остановок
+
+                                        coord_platf_string = obj.result.items[0].directions[direct].platforms[i].geometry.centroid; // координаты остановки
+                                        coord_platf_string = coord_platf_string.replace(/[POINT()]/g, '');
+
+                                        root_coord.indexOf(coord_platf_string, 0);
+
+                                        let str_end_position = root_coord.indexOf(coord_platf_string, 0) // позиция координат остановки в строке всего маршрута
+
+                                        let platform_section_coord = root_coord.slice(0, str_end_position + coord_platf_string.length);
+
+
+                                        if (platform_section_coord.slice(0, 1) == ',') {
+                                            platform_section_coord = platform_section_coord.slice(1);
+                                        }
+
+
+                                        if (direct == 0) {
+                                            arr_platform_section_coord_forward[i][0] = platform_section_coord;
+                                            arr_platform_section_coord_forward[i][1] = direct;
+                                            arr_platform_section_coord_forward[i][2] = obj.result.items[0].directions[direct].platforms[i].name;
+                                            arr_platform_section_coord_forward.push([0, 0, 0]);
+                                        }
+                                        if (direct == 1) {
+
+                                            arr_platform_section_coord_back[i][0] = platform_section_coord;
+                                            arr_platform_section_coord_back[i][1] = direct;
+                                            arr_platform_section_coord_back[i][2] = obj.result.items[0].directions[direct].platforms[i].name;
+                                            arr_platform_section_coord_back.push([0, 0, 0]);
+                                        }
+
+
+                                        if (i > 0) {
+                                            root_coord = root_coord.slice(str_end_position + coord_platf_string.length) // усечение строки всего маршрута кроме первой остановки
+                                        };
+
+                                        // console.log('platform_section_coord', platform_section_coord);
+
+                                        //  console.log('arr_platform_section_coord   ' + arr_platform_section_coord[i]);
+
+                                        var n = coord_platf_string.indexOf(" ");
+
+                                        cordin.lng = Number(coord_platf_string.substring(0, n));
+                                        cordin.lat = Number(coord_platf_string.substring(n + 1, coord_platf_string.length));
+
+                                        start_point[i][0] = cordin.lng;
+                                        start_point[i][1] = cordin.lat;
+                                        start_point.push([0, 0]);
+
+
+                                        new google.maps.Marker({ // создаем маркеры в цикле
+                                            map: map,
+
+                                            title: obj.result.items[0].directions[direct].platforms[i].name,
+                                            position: cordin,
+                                            label: String(i + 1),
+                                            //  icon: destinationIcon,
+                                        });
+                                    } // конец цикла чтения координат всех остановок
+
+                                    arr_platform_section_coord_forward.forEach(function(item, iz, arr_platform_section_coord) {
+                                        //   console.log(iz + ": " + arr_platform_section_coord[iz][0]);
+                                    });
+
+                                    map.setCenter({
+                                        lng: cordin.lng,
+                                        lat: cordin.lat
+                                    });
+                                    map.setZoom(12);
+
+                                    // создание массивов координат пар остановок 
+                                    start_point.pop();
+                                    end_point = start_point.slice(); // независимая копия массива
+                                    end_point.shift(); // сдвигаем влево
+                                    start_point.pop(); // удаляем последний элемент массива
+
+                                    let begin_root = [{
+                                        lng: 0,
+                                        lat: 0
+                                    }];
+                                    let end_root = [{
+                                        lng: 0,
+                                        lat: 0
+                                    }];
+                                    //********************************************************************//
+                                    //                      Расчет  дистанций                             //
+                                    //********************************************************************//
+                                    const geocoder = new google.maps.Geocoder();
+                                    const service = new google.maps.DistanceMatrixService();
+                                    let i_station = 0;
+                                    begin_root[0].lng = start_point[0][0]; // первое значение координат остановок
+                                    begin_root[0].lat = start_point[0][1]; // потом они меняются в рекурсивном цикле
+
+                                    end_root[0].lng = end_point[0][0];
+                                    end_root[0].lat = end_point[0][1];
+
+                                    f_stations(0); // вызов функции рекурсивного цикла
+
+                                    function f_stations(i_station) { //определение функции рекурсивного цикла
+
+                                        let dist_next_station = new Promise(function(resolve, reject) { // промис по получению расстояний между двумя станциями
+
+                                            //  console.log('i_station 99 ' + i_station + ' begin_root.lat ' + begin_root[0].lat + ' end_root.lat ' + end_root[0].lat);
+
+                                            service.getDistanceMatrix({
+                                                    origins: begin_root,
+                                                    destinations: end_root,
+                                                    travelMode: google.maps.TravelMode.DRIVING,
+                                                    unitSystem: google.maps.UnitSystem.METRIC,
+                                                    avoidHighways: false,
+                                                    avoidTolls: false,
+                                                },
+                                                (response, status) => {
+                                                    if (status == 'OK') {
+                                                        // константы
+                                                        const originList = response.originAddresses;
+                                                        const destinationList = response.destinationAddresses;
+                                                        var obj_geo_next = {
+                                                            "type": "Feature",
+                                                            "geometry": {
+                                                                "type": "MultiLineString",
+                                                                "coordinates": []
+                                                            },
+                                                            "properties": {
+                                                                "full_id": null,
+                                                                "Distance": null
+                                                            },
+                                                            "platform": [],
+                                                            "distance": []
+                                                        };
+
+                                                        if (direct == 0) {
+
+                                                            outputDiv_backward = document.getElementById('output-backward');
+                                                            outputDiv_backward.innerHTML += "<strong>" + String(i_station + 1) + "</strong>" + ". " +
+                                                                originList[0] + " остановка (" + "<strong>" + (obj.result.items[0].directions[0].platforms[i_station].name) + "</strong>" +
+                                                                ") ===> " +
+                                                                destinationList[0] + " остановка (" + "<strong>" + (obj.result.items[0].directions[0].platforms[i_station + 1].name) + "</strong>" + ") : " +
+                                                                response.rows[0].elements[0].distance.text + "  или  " + "<strong>" + response.rows[0].elements[0].distance.value + "</strong>" + " метров " +
+                                                                " в " + response.rows[0].elements[0].duration.text + "<br>";
+
+                                                            obj_0.result.items[0].directions[direct].platforms[i_station].distance_next_platform = String(response.rows[0].elements[0].distance.value); // добавляем ключ значение расстояния для следующей станции
+
+
+
+                                                            obj_geojson_forward.features.push(obj_geo_next);
+
+                                                            obj_geojson_forward.features[i_station].platform.push(obj.result.items[0].directions[0].platforms[i_station].name);
+                                                            obj_geojson_forward.features[i_station].distance.push(response.rows[0].elements[0].distance.value);
+                                                            obj_geojson_forward.features[i_station].platform_number = i_station;
+                                                            obj_geojson_forward.features[i_station].platform_coord = coord_platf_string;
+                                                            obj_geojson_forward.features[i_station].platform_id = obj.result.items[0].directions[0].platforms[0].id;
+
+                                                            obj_geojson_forward.features[i_station].properties.Distance = response.rows[0].elements[0].distance.value;
+
+
+
+
+
+
+                                                            var array_section = arr_platform_section_coord_forward[i_station + 1][0].split(','); //преобразование строки координат отрезка в массив
+                                                            let platform_sec_coord_lng = [];
+                                                            let platform_sec_coord_lat = [];
+
+                                                            for (let i_array_section = 0; i_array_section < array_section.length; i_array_section++) {
+                                                                let str_end_pos = array_section[i_array_section].indexOf(' ', 0) // позиция координат остановки в строке всего маршрута
+
+                                                                platform_sec_coord_lng.push(array_section[i_array_section].slice(0, str_end_pos));
+                                                                platform_sec_coord_lat.push(array_section[i_array_section].slice(str_end_pos));
+
+                                                            }
+
+                                                            for (let i_array_section = 0; i_array_section < platform_sec_coord_lng.length - 1; i_array_section++) {
+                                                                obj_geojson_forward.features[i_station].geometry.coordinates.push([
+                                                                    [parseFloat(platform_sec_coord_lng[i_array_section]), parseFloat(platform_sec_coord_lat[i_array_section])],
+                                                                    [parseFloat(platform_sec_coord_lng[i_array_section + 1]), parseFloat(platform_sec_coord_lat[i_array_section + 1])]
+                                                                ])
+                                                            };
+
+
+
+
+                                                            //  console.log("obj_geojson_forward ");
+                                                            //  console.log(obj_geojson_forward);
+
+                                                        };
+                                                        if (direct == 1) {
+
+                                                            outputDiv_forward = document.getElementById('output-forward');
+                                                            outputDiv_forward.innerHTML += "<strong>" + String(i_station + 1) + "</strong>" + ". " +
+                                                                originList[0] + " остановка (" + "<strong>" + obj.result.items[0].directions[1].platforms[i_station].name + "</strong>" +
+                                                                ") ===> " +
+                                                                destinationList[0] + " остановка (" + "<strong>" + obj.result.items[0].directions[1].platforms[i_station + 1].name + "</strong>" + ") : " +
+                                                                response.rows[0].elements[0].distance.text + "  или  " + "<strong>" + response.rows[0].elements[0].distance.value + "</strong>" + " метров " +
+                                                                " в " + response.rows[0].elements[0].duration.text + "<br>";
+
+                                                            obj_1.result.items[0].directions[direct].platforms[i_station].distance_next_platform = String(response.rows[0].elements[0].distance.value); // добавляем ключ значение расстояния для следующей станции
+
+                                                            obj_geojson_backward.features.push(obj_geo_next);
+
+                                                            obj_geojson_backward.features[i_station].platform.push(obj.result.items[0].directions[1].platforms[i_station].name);
+
+                                                            //  console.log(obj.result.items[0].directions[1].platforms[i_station].name);
+
+                                                            obj_geojson_backward.features[i_station].distance.push(response.rows[0].elements[0].distance.value);
+
+                                                            var array_section = arr_platform_section_coord_back[i_station + 1][0].split(','); //преобразование строки координат отрезка в массив
+                                                            let platform_sec_coord_lng = [];
+                                                            let platform_sec_coord_lat = [];
+
+                                                            for (let i_array_section = 0; i_array_section < array_section.length; i_array_section++) {
+                                                                let str_end_pos = array_section[i_array_section].indexOf(' ', 0) // позиция координат остановки в строке всего маршрута
+
+                                                                platform_sec_coord_lng.push(array_section[i_array_section].slice(0, str_end_pos));
+                                                                platform_sec_coord_lat.push(array_section[i_array_section].slice(str_end_pos));
+
+                                                            }
+
+                                                            for (let i_array_section = 0; i_array_section < platform_sec_coord_lng.length - 1; i_array_section++) {
+                                                                obj_geojson_backward.features[i_station].geometry.coordinates.push([
+                                                                    [parseFloat(platform_sec_coord_lng[i_array_section]), parseFloat(platform_sec_coord_lat[i_array_section])],
+                                                                    [parseFloat(platform_sec_coord_lng[i_array_section + 1]), parseFloat(platform_sec_coord_lat[i_array_section + 1])]
+                                                                ])
+                                                            };
+
+
+                                                            //  console.log("obj_geojson_forward ");
+                                                            //  console.log(obj_geojson_forward);
+
+                                                        };
+
+                                                        resolve();
+                                                    }
+                                                }
+                                            );
+                                        }); // конец промиса по получению расстояний между двумя станциями
+
+                                        dist_next_station.then(() => {
+
+                                            i_station = i_station + 1;
+
+                                            // рекурсивный цикл по всем станциям
+                                            if (i_station < start_point.length) {
+                                                // if (i_station < 5) {
+                                                begin_root[0].lng = start_point[i_station][0];
+                                                begin_root[0].lat = start_point[i_station][1];
+                                                end_root[0].lng = end_point[i_station][0];
+                                                end_root[0].lat = end_point[i_station][1];
+                                                f_stations(i_station);
+                                            } // конец рекурсивного цикла по всем станциям
+                                            else { // после выхода из цикла, записываем измененный json
+
+                                                //для последней остановки добавляем значение ключ  расстояния 0
+                                                if (direct == 0) obj_0.result.items[0].directions[direct].platforms[i_station].distance_next_platform = "0"
+                                                else obj_1.result.items[0].directions[direct].platforms[i_station].distance_next_platform = "0";
+
+                                                let second_root_iteration = new Promise(function(resolve, reject) { // расчет обратного маршрута
+                                                    root_iteration(1, source_file1);
+
+                                                    resolve();
+                                                });
+
+                                                second_root_iteration.then(
+                                                    resolve => {
+                                                        if (direct == 1) {
+
+                                                            for (let i_plt = 0; i_plt < obj_1.result.items[0].directions[1].platforms.length; i_plt++) {
+
+                                                                obj_0.result.items[0].directions[1].platforms[i_plt].distance_next_platform =
+                                                                    obj_1.result.items[0].directions[1].platforms[i_plt].distance_next_platform;
+                                                            }
+
+                                                            obj_0.result.items[0].root_number = json_fname.slice(0, -5) // добавляем номер маршрута в json файл
+
+
+
+
+
+
+                                                            $.ajax({
+                                                                url: 'data_0.php',
+                                                                type: 'POST',
+                                                                data: {
+                                                                    myJson: JSON.stringify(obj_geojson_forward),
+                                                                    NameOfFile: 'geo_forw_' + source_file1
+                                                                }
+                                                            });
+
+
+
+                                                            $.ajax({
+                                                                url: 'data_0.php',
+                                                                type: 'POST',
+                                                                data: {
+                                                                    myJson: JSON.stringify(obj_geojson_backward),
+                                                                    NameOfFile: 'geo_backward_' + source_file1
+                                                                }
+                                                            });
+                                                        }
+
+                                                    }, // doesn't run
+                                                    reject => console.log(console.log('Hello55')) // shows "Error: Whoops!" after 1 second
+                                                )
+
+                                            } // конец else (после выхода из цикла, записываем измененный json)
+
+                                        });
+                                    }; // конец f_stations
+
+
+                                }); // конец fetch
+
+
+                            } // конец функции  root_iteration
+
+
+                            root_iteration(0, source_file1); // первый вызов функции, начало расчетов
+                            console.log("end files_loop");
+                        } // конец files_loop функции для цикла по исходным файлам маршрута 
+
+                        files_loop(sourse_json); // начало выполнения программы
+
+
+                    }); // конец files_lp Promise(
+                } // конец envelop_files_lp
+
+            let name_json_file = [
+                /* 'bus_1(6).json',
+                 'bus_101(1).json',
+                 'bus_102(1).json',
+                 'bus_103(1).json',
+                 'bus_104(1).json',
+                 'bus_105(1).json',
+                 'bus_107(1).json',
+                 'bus_108(1).json', */
+                'bus_109(1).json',
+                'bus_111(1).json',
+                'bus_14(12).json',
+                'bus_15(6).json',
+                'bus_16(8).json',
+                'bus_17(9).json',
+                'bus_18(8).json',
+                'bus_19(8).json',
+                'bus_2(8).json',
+                'bus_20(12).json',
+                'bus_25(8).json',
+                'bus_3(8).json',
+                'bus_35(7).json',
+                'bus_4(12).json',
+                'bus_41(8).json',
+                'bus_5(8).json',
+                'bus_6(8).json',
+                'bus_7(8).json',
+                'bus_8(8).json'
+            ]
+
+
+            for await (json_fname of name_json_file) {
+                await envelop_files_lp(json_fname);
+            }
+
+
+
+        } // конец функции initMap
+    </script>
+</head>
+
+<body>
+    <div id="right-panel">
+        <div id="inputs">
+
+        </div>
+
+        <div id="output-forward">
+            <strong>Расстояния между остановками forward</strong> <br>
+        </div>
+
+
+        <div id="output-backward">
+            <strong>Расстояния между остановками backward</strong> <br>
+        </div>
+    </div>
+    <div id="map"></div>
+</body>
+
+</html>
