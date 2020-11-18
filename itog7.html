@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Distance Matrix Service</title>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.js" integrity="sha256-QWo7LDvxbWT2tbbQ97B53yJnYU3WhH/C8ycbRAkjPDc=" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="css/style.css">
+
+    <script>
+        async function init_func() {
+            let obj_features;
+
+            function del_file() {
+                $.ajax({
+                    url: 'delete.php',
+                    type: 'POST'
+
+                });
+            };
+
+
+
+            var obj_geojson = {
+                "name": "NewFeatureType",
+                "type": "FeatureCollection"
+
+
+
+            };
+
+
+
+            let name_json_file = [
+
+                'geo_forw_bus_1(6).json',
+                'geo_forw_bus_101(1).json',
+                'geo_forw_bus_102(1).json',
+                'geo_forw_bus_103(1).json',
+                'geo_forw_bus_104(1).json',
+                'geo_forw_bus_105(1).json',
+                'geo_forw_bus_107(1).json',
+                'geo_forw_bus_108(1).json',
+                'geo_forw_bus_109(1).json',
+                'geo_forw_bus_111(1).json',
+                'geo_forw_bus_14(12).json',
+                'geo_forw_bus_15(6).json',
+                'geo_forw_bus_16(8).json',
+                'geo_forw_bus_17(9).json',
+                'geo_forw_bus_18(8).json',
+                'geo_forw_bus_19(8).json',
+                'geo_forw_bus_2(8).json',
+                'geo_forw_bus_20(12).json',
+                'geo_forw_bus_25(8).json',
+                'geo_forw_bus_3(8).json',
+                'geo_forw_bus_35(7).json',
+                'geo_forw_bus_4(12).json',
+                'geo_forw_bus_41(8).json',
+                'geo_forw_bus_5(8).json',
+                'geo_forw_bus_6(8).json',
+                'geo_forw_bus_7(8).json',
+                'geo_forw_bus_8(8).json'
+            ];
+
+
+            function del_file() {
+                $.ajax({
+                    url: 'delete.php',
+                    type: 'POST'
+
+                });
+            };
+
+            function write_symbol(simbol) {
+                $.ajax({
+                    url: 'symbol.php',
+                    type: 'POST',
+                    data: {
+                        SendedSymbol: simbol
+                    }
+                });
+            };
+
+            function write_file(sourse_json) {
+                let wr = new Promise(function(resolve, reject) {
+
+                    fetch(sourse_json).then(function(response) { // чтение json
+                        return response.json();
+                    }).then(function(obj) { // успешное чтение json
+                        console.log(obj);
+                        obj_features = obj.features;
+
+
+                        if (obj_geojson.hasOwnProperty('features')) {
+
+                            for (let ii = 0; ii < obj_features.length; ii++) {
+                                obj_geojson.features.push(obj_features[ii]);
+                            }
+
+                        } else {
+                            obj_geojson.features = obj_features;
+                        }
+
+
+
+
+
+                    }); // конец fetch
+                });
+
+
+
+            } // конец write_file
+
+            //  del_file();
+
+            // write_file('bus_8(8)short.json');
+
+
+            let fin_record = new Promise(async function(resolve, reject) {
+
+                for await (const item of name_json_file) {
+                    await write_file(item);
+                }
+                setTimeout(() => {
+                    resolve();
+                }, 3000);
+            });
+
+
+
+
+
+            fin_record.then(() => {
+                del_file();
+                console.log(obj_features);
+
+
+
+                $.ajax({
+                    url: 'data_0.php',
+                    type: 'POST',
+                    data: {
+                        myJson: JSON.stringify(obj_geojson),
+                        NameOfFile: 'itog.json'
+                    }
+                });
+            });
+
+        } // конец функции init_func
+
+        init_func();
+    </script>
+</head>
+
+<body>
+    <div id="right-panel">
+        <div id="inputs">
+
+        </div>
+
+        <div id="output-forward">
+            <strong>Расстояния между остановками forward</strong> <br>
+        </div>
+
+
+        <div id="output-backward">
+            <strong>Расстояния между остановками backward</strong> <br>
+        </div>
+    </div>
+    <div id="map"></div>
+</body>
+
+</html>
