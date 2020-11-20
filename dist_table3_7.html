@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Distance Matrix Service</title>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.js" integrity="sha256-QWo7LDvxbWT2tbbQ97B53yJnYU3WhH/C8ycbRAkjPDc=" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="css/style.css">
+
+    <script>
+        async function init_func() {
+            let obj_features;
+            let i_f = 0;
+
+            function del_file() {
+                $.ajax({
+                    url: 'delete.php',
+                    type: 'POST'
+
+                });
+            };
+
+            let name_json_file = [
+
+                'geo_forw_bus_1(6).json',
+                'geo_forw_bus_101(1).json',
+                'geo_forw_bus_102(1).json',
+                'geo_forw_bus_103(1).json',
+                'geo_forw_bus_104(1).json',
+                'geo_forw_bus_105(1).json',
+                'geo_forw_bus_107(1).json',
+                'geo_forw_bus_108(1).json',
+                'geo_forw_bus_109(1).json',
+                'geo_forw_bus_111(1).json',
+                'geo_forw_bus_14(12).json',
+                'geo_forw_bus_15(6).json',
+                'geo_forw_bus_16(8).json',
+                'geo_forw_bus_17(9).json',
+                'geo_forw_bus_18(8).json',
+                'geo_forw_bus_19(8).json',
+                'geo_forw_bus_2(8).json',
+                'geo_forw_bus_20(12).json',
+                'geo_forw_bus_25(8).json',
+                'geo_forw_bus_3(8).json',
+                'geo_forw_bus_35(7).json',
+                'geo_forw_bus_4(12).json',
+                'geo_forw_bus_41(8).json',
+                'geo_forw_bus_5(8).json',
+                'geo_forw_bus_6(8).json',
+                'geo_forw_bus_7(8).json',
+                'geo_forw_bus_8(8).json'
+            ];
+
+
+            function del_file() {
+                $.ajax({
+                    url: 'delete.php',
+                    type: 'POST'
+
+                });
+            };
+
+            var table_geojson = {
+                "name": "NewFeatureType",
+                "type": "FeatureCollection",
+                "features": []
+            };
+
+
+
+            function write_file(sourse_json) {
+                let wr = new Promise(function(resolve, reject) {
+
+                    fetch(sourse_json).then(function(response) { // чтение json
+                        return response.json();
+                    }).then(function(obj) { // успешное чтение json
+                        //    console.log(obj);
+                        obj_features = obj.features;
+                        var table_next = {
+                            "type": "Feature",
+                            "root_name": null,
+                            "platforms": {
+                                "platform_number": [],
+                                "platform_name": [],
+                                "distance_next_platform": []
+                            }
+                        };
+
+                        let push_features = new Promise(function(resolve, reject) {
+                            table_geojson.features.push(table_next);
+                            resolve("result");
+                        });
+
+                        push_features.then(
+                            result => {
+                                for (let ii = 0; ii < obj_features.length - 1; ii++) {
+                                    table_geojson.features[i_f].platforms.platform_number.push(ii + 1);
+                                    table_geojson.features[i_f].platforms.platform_name.push(obj_features[ii].platform);
+                                    table_geojson.features[i_f].platforms.distance_next_platform.push(obj_features[ii].properties.Distance);
+                                    table_geojson.features[i_f].root_name = (obj_features[ii].root_name);
+                                }
+                                console.log(sourse_json);
+                                i_f++; // увеличиваем для следующего нового файла маршрута
+
+                                return;
+
+                            });
+
+                    }); // конец fetch
+                });
+
+            } // конец write_file
+
+            let fin_record = new Promise(async function(resolve, reject) {
+
+                for await (const item of name_json_file) {
+                    await write_file(item);
+                    //  i_f++;
+                }
+                setTimeout(() => {
+                    resolve();
+                }, 3000);
+            });
+
+            fin_record.then(() => {
+                del_file();
+                console.log("Итоговый файл");
+                console.log(table_geojson);
+
+
+                $.ajax({
+                    url: 'data_0.php',
+                    type: 'POST',
+                    data: {
+                        myJson: JSON.stringify(table_geojson),
+                        NameOfFile: 'table.json'
+                    }
+                });
+
+            });
+
+        } // конец функции init_func
+
+        init_func();
+    </script>
+</head>
+
+<body>
+    <div id="table1">
+        <strong>Создание таблицы расстояний между остановками</strong> <br>
+    </div>
+
+</body>
+
+</html>
